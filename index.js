@@ -38,7 +38,7 @@ const enrouten = (folder, router, prefix = '') => {
 
 const router = (folderName = '') => {
   const koaRouter = new Router();
-  const folder = path.join(__dirname, !isEmpty(folderName) ? folderName : '');
+  const folder = path.join(__dirname, '../../..', !isEmpty(folderName) ? folderName : '');
 
   enrouten(folder, koaRouter);
 
