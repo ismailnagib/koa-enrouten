@@ -1,46 +1,48 @@
 const fs = require('fs');
 const path = require('path');
 const Router = require('@koa/router');
-const get = require('lodash.get');
-const trimStart = require('lodash.trimstart');
-const isFunction = require('lodash.isfunction');
-const isEmpty = require('lodash.isempty');
 
-const enrouten = (folder, router, prefix = '') => {
-  const items = fs.readdirSync(folder);
+const enrouten = (dirPath, router, prefix = '') => {
+  try {
+    const items = fs.readdirSync(dirPath);
 
-  items.forEach((item) => {
-    const isFile = item.indexOf('.') >= 0;
+    items.forEach((item) => {
+      const isFile = item.indexOf('.') >= 0;
+      const itemDirPath = path.join(dirPath, item);
+      const validPrefix = typeof prefix === 'string' ? prefix : '';
 
-    if (isFile) {
-      try {
-        // eslint-disable-next-line
-        const file = require(path.join(folder, item));
+      if (!isFile) return enrouten(itemDirPath, router, path.join(validPrefix, item !== 'index' ? item : ''));
 
-        if (isFunction(file) && isFunction(get(router, 'use', null))) {
-          const fileName = item.split('.').slice(0, -1).join('.');
-          const routePath = trimStart(path.join(prefix, fileName !== 'index' ? fileName : ''), '.');
-          const fileRouter = new Router({ prefix: !isEmpty(routePath) ? `/${routePath}` : '' });
+      // eslint-disable-next-line
+      const file = require(itemDirPath);
 
-          file(fileRouter);
-          router.use(fileRouter.routes());
-        }
+      if (typeof file === 'function' && typeof router.use === 'function') {
+        const fileName = item.split('.').slice(0, -1).join('.');
+        let routePath = path.join(validPrefix, fileName !== 'index' ? fileName : '');
 
-        return router;
-      } catch (error) {
-        return router;
+        if (routePath[0] === '.') routePath = routePath.slice(1);
+
+        const fileRouter = new Router({ prefix: routePath.length > 0 ? `/${routePath}` : '' });
+
+        file(fileRouter);
+        router.use(fileRouter.routes());
       }
-    } else {
-      return enrouten(path.join(folder, item), router, path.join(prefix, item !== 'index' ? item : ''));
-    }
-  });
+
+      return router;
+    });
+
+    return router;
+  } catch (error) {
+    return router;
+  }
 };
 
-const router = (folderName = '') => {
+const router = (dir = '') => {
   const koaRouter = new Router();
-  const folder = path.join(__dirname, '../../..', !isEmpty(folderName) ? folderName : '');
+  const dirName = typeof dir === 'string' ? dir : '';
+  const dirPath = path.join(__dirname, '../../..', dirName);
 
-  enrouten(folder, koaRouter);
+  enrouten(dirPath, koaRouter);
 
   return koaRouter;
 };
