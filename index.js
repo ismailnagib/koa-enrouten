@@ -1,14 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const Router = require('@koa/router');
+const callsite = require('callsite');
 
 const enrouten = (dirPath, router, prefix = '') => {
   try {
     const items = fs.readdirSync(dirPath);
 
     items.forEach((item) => {
-      const isFile = item.indexOf('.') >= 0;
       const itemDirPath = path.join(dirPath, item);
+      const isFile = fs.statSync(itemDirPath).isFile();
       const validPrefix = typeof prefix === 'string' ? prefix : '';
 
       if (!isFile) return enrouten(itemDirPath, router, path.join(validPrefix, item !== 'index' ? item : ''));
@@ -39,12 +40,21 @@ const enrouten = (dirPath, router, prefix = '') => {
 
 const router = (dir = '') => {
   const koaRouter = new Router();
-  const dirName = typeof dir === 'string' ? dir : '';
-  const dirPath = path.join(__dirname, '../../..', dirName);
 
-  enrouten(dirPath, koaRouter);
+  try {
+    const stack = callsite();
+    const callerPath = typeof stack === 'object' && typeof stack[1] === 'object' && typeof stack[1].getFileName === 'function'
+      ? `${stack[1].getFileName()}`.split('/').slice(0, -1).join('/')
+      : '';
+    const dirName = typeof dir === 'string' ? dir : '';
+    const dirPath = path.join(callerPath, dirName);
 
-  return koaRouter;
+    enrouten(dirPath, koaRouter);
+
+    return koaRouter;
+  } catch (error) {
+    return koaRouter;
+  }
 };
 
 module.exports = router;
