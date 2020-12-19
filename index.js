@@ -15,7 +15,9 @@ const enrouten = (dirPath, router, prefix = '') => {
       if (!isFile) return enrouten(itemDirPath, router, path.join(validPrefix, item !== 'index' ? item : ''));
 
       // eslint-disable-next-line
-      const file = require(itemDirPath);
+      let file = require(itemDirPath);
+
+      if (typeof file === 'object' && typeof file.default === 'function') file = file.default;
 
       if (typeof file === 'function' && typeof router.use === 'function') {
         const fileName = item.split('.').slice(0, -1).join('.');
