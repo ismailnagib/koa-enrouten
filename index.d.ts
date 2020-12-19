@@ -1,5 +1,6 @@
 import Router from '@koa/router';
 
-declare function router(dir: string = '') : Router;
+declare function router(dir: string) : Router;
 
-export = router;
+export { router };
+export default router;
